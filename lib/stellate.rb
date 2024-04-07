@@ -95,7 +95,7 @@ module Stellate
       elsif callback.is_a?(Symbol) && method(callback).is_a?(Method)
         method(callback).call(stellate_request)
       else
-        run_stellate_request(stellate_request)
+        SchemaSyncing.run_stellate_request(stellate_request)
       end
 
       result
@@ -154,24 +154,25 @@ module Stellate
         run_stellate_request(stellate_request)
       end
     end
-  end
 
-  def self.run_stellate_request(stellate_request)
-    url = URI.parse(stellate_request['url'])
+    def self.run_stellate_request(stellate_request)
+      url = URI.parse(stellate_request['url'])
 
-    http = Net::HTTP.new(url.host, url.port)
-    http.use_ssl = true
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
 
-    req = Net::HTTP::Post.new(url)
-    stellate_request['headers'].each do |key, value|
-      req[key] = value
+      req = Net::HTTP::Post.new(url)
+      stellate_request['headers'].each do |key, value|
+        req[key] = value
+      end
+      req.body = stellate_request['body']
+      res = http.request(req)
+      puts "HTTP request to Stellate failed: #{res.body}" if res.code.to_i >= 300
+    rescue StandardError => e
+      puts "HTTP request to Stellate failed: #{e}"
     end
-    req.body = stellate_request['body']
-    res = http.request(req)
-    puts "HTTP request to Stellate failed: #{res.body}" if res.code.to_i >= 300
-  rescue StandardError => e
-    puts "HTTP request to Stellate failed: #{e}"
   end
+
 end
 
 def create_blake3_hash(str)
